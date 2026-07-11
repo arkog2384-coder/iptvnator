@@ -31,6 +31,7 @@ import { databaseWorkerClient } from './app/services/database-worker-client';
 import WindowEvents from './app/events/window.events';
 import XtreamEvents from './app/events/xtream.events';
 import { environment } from './environments/environment';
+import { isFrameCopyPlatformSupported } from './app/services/embedded-mpv-frame-copy-platform.util';
 import {
     EMBEDDED_MPV_FRAME_COPY,
     store,
@@ -65,8 +66,7 @@ if (electronUserDataPath) {
 // to the main-process config store; an explicitly set env var (including
 // '0') always wins so dev/CI behavior stays scriptable.
 if (
-    process.platform === 'darwin' &&
-    process.arch === 'arm64' &&
+    isFrameCopyPlatformSupported() &&
     process.env.IPTVNATOR_ENABLE_EMBEDDED_MPV_FRAME_COPY === undefined &&
     store.get(EMBEDDED_MPV_FRAME_COPY, false)
 ) {
