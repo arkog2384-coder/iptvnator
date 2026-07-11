@@ -19,7 +19,7 @@ function isTruthy(value) {
     );
 }
 
-function copyEmbeddedMpvNativeOutput(resourceDir, projectDir) {
+function copyEmbeddedMpvNativeOutput(resourceDir, projectDir, platform) {
     const sourceDir = path.join(
         projectDir,
         'dist',
@@ -41,6 +41,17 @@ function copyEmbeddedMpvNativeOutput(resourceDir, projectDir) {
 
     fs.rmSync(destinationDir, { recursive: true, force: true });
     fs.cpSync(sourceDir, destinationDir, { recursive: true });
+
+    if (platform === 'linux') {
+        // Dev-mode-only for now: the Linux frame-copy helper links the
+        // build host's system libmpv, which packaged apps cannot assume is
+        // installed. Ship it only once the bundled-libmpv runtime staging
+        // lands (spikes/mpv-frame-copy/PORTING.md milestone 3); the support
+        // probe treats a missing helper as frame-copy-unavailable.
+        fs.rmSync(path.join(destinationDir, 'iptvnator_mpv_helper'), {
+            force: true,
+        });
+    }
 }
 
 function writeEmbeddedMpvUnavailableMarker(resourceDir, targetArch) {
@@ -85,7 +96,8 @@ async function afterPackHook(params) {
     } else {
         copyEmbeddedMpvNativeOutput(
             resourceDir,
-            params.packager.projectDir ?? process.cwd()
+            params.packager.projectDir ?? process.cwd(),
+            params.electronPlatformName
         );
     }
 
