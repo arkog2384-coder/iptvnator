@@ -31,7 +31,10 @@ import { databaseWorkerClient } from './app/services/database-worker-client';
 import WindowEvents from './app/events/window.events';
 import XtreamEvents from './app/events/xtream.events';
 import { environment } from './environments/environment';
-import { isFrameCopyPlatformSupported } from './app/services/embedded-mpv-frame-copy-platform.util';
+import {
+    isFrameCopyPlatformSupported,
+    resolveFrameCopyHelperPath,
+} from './app/services/embedded-mpv-frame-copy-platform.util';
 import {
     EMBEDDED_MPV_FRAME_COPY,
     store,
@@ -68,7 +71,12 @@ if (electronUserDataPath) {
 if (
     isFrameCopyPlatformSupported() &&
     process.env.IPTVNATOR_ENABLE_EMBEDDED_MPV_FRAME_COPY === undefined &&
-    store.get(EMBEDDED_MPV_FRAME_COPY, false)
+    store.get(EMBEDDED_MPV_FRAME_COPY, false) &&
+    // A stale opt-in with no usable helper (packaged Linux strips it; a
+    // cleaned native build loses it) must not relax the window sandbox
+    // for an engine that cannot activate. The Settings toggle stays
+    // visible off the saved value, so the opt-in remains clearable.
+    resolveFrameCopyHelperPath() !== null
 ) {
     process.env.IPTVNATOR_ENABLE_EMBEDDED_MPV_FRAME_COPY = '1';
 }

@@ -1,9 +1,7 @@
 import { app, dialog, powerSaveBlocker, screen } from 'electron';
 import { spawnSync } from 'child_process';
 import {
-    accessSync,
     closeSync,
-    constants as fsConstants,
     existsSync,
     mkdirSync,
     openSync,
@@ -30,7 +28,11 @@ import {
     ResolvedPortalPlayback,
 } from '@iptvnator/shared/interfaces';
 import { EmbeddedMpvFrameCopyAdapter } from './embedded-mpv-frame-copy.adapter';
-import { isFrameCopyPlatformSupported } from './embedded-mpv-frame-copy-platform.util';
+import {
+    getEmbeddedMpvAddonCandidatePaths,
+    isFrameCopyPlatformSupported,
+    resolveFrameCopyHelperPath,
+} from './embedded-mpv-frame-copy-platform.util';
 
 export interface NativeEmbeddedMpvSessionSnapshot {
     status: EmbeddedMpvSessionStatus;
@@ -92,12 +94,6 @@ const SUPPORTED_EMBEDDED_MPV_PLATFORMS = new Set<NodeJS.Platform>([
     'win32',
     'linux',
 ]);
-
-function dedupePaths(paths: Array<string | undefined>): string[] {
-    return [
-        ...new Set(paths.filter((value): value is string => Boolean(value))),
-    ];
-}
 
 export class EmbeddedMpvNativeService {
     private addon: NativeEmbeddedMpvAddon | null = null;
@@ -170,24 +166,9 @@ export class EmbeddedMpvNativeService {
     }
 
     private resolveFrameCopyHelperPath(): string | null {
-        const candidates = this.getAddonCandidatePaths().map(
-            (candidatePath) =>
-                path.join(path.dirname(candidatePath), 'iptvnator_mpv_helper')
-        );
-        // Require the execute bit, not just existence: webpack's dist asset
-        // copy drops file modes, and spawning a 0644 helper fails with
-        // EACCES. A non-executable candidate must read as "unavailable" so
-        // the engine falls back to native instead of erroring.
-        return (
-            candidates.find((candidate) => {
-                try {
-                    accessSync(candidate, fsConstants.X_OK);
-                    return true;
-                } catch {
-                    return false;
-                }
-            }) ?? null
-        );
+        // Shared with the main.ts sandbox gate; kept as an instance method
+        // so tests can stub helper discovery per scenario.
+        return resolveFrameCopyHelperPath();
     }
 
     private getMainWindowScaleFactor(): number {
@@ -1100,47 +1081,7 @@ export class EmbeddedMpvNativeService {
     }
 
     private getAddonCandidatePaths(): string[] {
-        const localBuildAddonPath = path.resolve(
-            process.cwd(),
-            'apps/electron-backend/native/build/Release/embedded_mpv.node'
-        );
-        const distAddonPaths = [
-            path.resolve(__dirname, 'native/embedded_mpv.node'),
-            path.resolve(__dirname, '../../native/embedded_mpv.node'),
-        ];
-        const packagedAddonPaths = [
-            path.resolve(
-                (process as NodeJS.Process & { resourcesPath?: string })
-                    .resourcesPath ?? '',
-                'app.asar.unpacked',
-                'electron-backend',
-                'native',
-                'embedded_mpv.node'
-            ),
-            app.getAppPath()
-                ? path.join(
-                      path.dirname(app.getAppPath()),
-                      'app.asar.unpacked',
-                      'electron-backend',
-                      'native',
-                      'embedded_mpv.node'
-                  )
-                : undefined,
-        ];
-
-        return dedupePaths(
-            app.isPackaged
-                ? [
-                      ...packagedAddonPaths,
-                      ...distAddonPaths,
-                      localBuildAddonPath,
-                  ]
-                : [
-                      localBuildAddonPath,
-                      ...distAddonPaths,
-                      ...packagedAddonPaths,
-                  ]
-        );
+        return getEmbeddedMpvAddonCandidatePaths();
     }
 
     private readUnavailableReason(candidatePaths: string[]): string | null {
