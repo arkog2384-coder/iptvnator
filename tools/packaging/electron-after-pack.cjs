@@ -42,15 +42,22 @@ function copyEmbeddedMpvNativeOutput(resourceDir, projectDir, platform) {
     fs.rmSync(destinationDir, { recursive: true, force: true });
     fs.cpSync(sourceDir, destinationDir, { recursive: true });
 
+    const frameCopyHelperFile = path.join(
+        destinationDir,
+        'iptvnator_mpv_helper'
+    );
     if (platform === 'linux') {
         // Dev-mode-only for now: the Linux frame-copy helper links the
         // build host's system libmpv, which packaged apps cannot assume is
-        // installed. Ship it only once the bundled-libmpv runtime staging
-        // lands (spikes/mpv-frame-copy/PORTING.md milestone 3); the support
-        // probe treats a missing helper as frame-copy-unavailable.
-        fs.rmSync(path.join(destinationDir, 'iptvnator_mpv_helper'), {
-            force: true,
-        });
+        // installed. Ship it only once the Linux bundled-libmpv runtime
+        // staging lands (spikes/mpv-frame-copy/PORTING.md milestone 4); the
+        // support probe treats a missing helper as frame-copy-unavailable.
+        fs.rmSync(frameCopyHelperFile, { force: true });
+    } else if (fs.existsSync(frameCopyHelperFile)) {
+        // The webpack dist asset copy drops file modes, so the helper
+        // arrives here as 0644 — restore the execute bit or the packaged
+        // engine cannot spawn it.
+        fs.chmodSync(frameCopyHelperFile, 0o755);
     }
 }
 
