@@ -44,7 +44,9 @@ function copyEmbeddedMpvNativeOutput(resourceDir, projectDir, platform) {
 
     const frameCopyHelperFile = path.join(
         destinationDir,
-        'iptvnator_mpv_helper'
+        platform === 'win32'
+            ? 'iptvnator_mpv_helper.exe'
+            : 'iptvnator_mpv_helper'
     );
     if (platform === 'linux') {
         // Dev-mode-only for now: the Linux frame-copy helper links the
@@ -53,10 +55,10 @@ function copyEmbeddedMpvNativeOutput(resourceDir, projectDir, platform) {
         // staging lands (spikes/mpv-frame-copy/PORTING.md milestone 4); the
         // support probe treats a missing helper as frame-copy-unavailable.
         fs.rmSync(frameCopyHelperFile, { force: true });
-    } else if (fs.existsSync(frameCopyHelperFile)) {
+    } else if (platform !== 'win32' && fs.existsSync(frameCopyHelperFile)) {
         // The webpack dist asset copy drops file modes, so the helper
         // arrives here as 0644 — restore the execute bit or the packaged
-        // engine cannot spawn it.
+        // engine cannot spawn it. (Windows has no execute bit.)
         fs.chmodSync(frameCopyHelperFile, 0o755);
     }
 }
