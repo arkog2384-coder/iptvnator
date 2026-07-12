@@ -64,6 +64,9 @@ function cleanOutput() {
     // so leaving a stale one behind would let frame-copy activate against
     // a runtime this build just declared unavailable.
     fs.rmSync(path.join(outputDir, 'iptvnator_mpv_helper'), { force: true });
+    fs.rmSync(path.join(outputDir, 'iptvnator_mpv_helper.exe'), {
+        force: true,
+    });
     fs.rmSync(path.join(outputDir, 'embedded_mpv_frame_reader.node'), {
         force: true,
     });
