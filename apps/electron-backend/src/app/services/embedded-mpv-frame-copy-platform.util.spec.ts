@@ -31,7 +31,8 @@ describe('embedded-mpv-frame-copy-platform.util', () => {
             ['darwin', 'x64', false],
             ['linux', 'x64', true],
             ['linux', 'arm64', true],
-            ['win32', 'x64', false],
+            ['win32', 'x64', true],
+            ['freebsd', 'x64', false],
         ])('%s/%s -> %s', (platform, arch, expected) => {
             Object.defineProperty(process, 'platform', { value: platform });
             Object.defineProperty(process, 'arch', { value: arch });
@@ -52,8 +53,15 @@ describe('embedded-mpv-frame-copy-platform.util', () => {
                 'build',
                 'Release'
             );
+        // The resolver looks for the host platform's binary name, so the
+        // fixture must follow it for the spec to stay host-agnostic.
         const helperPath = () =>
-            path.join(releaseDir(), 'iptvnator_mpv_helper');
+            path.join(
+                releaseDir(),
+                process.platform === 'win32'
+                    ? 'iptvnator_mpv_helper.exe'
+                    : 'iptvnator_mpv_helper'
+            );
 
         beforeEach(() => {
             tempDir = mkdtempSync(path.join(tmpdir(), 'impv-fc-util-'));

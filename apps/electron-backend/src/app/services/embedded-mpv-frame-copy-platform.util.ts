@@ -12,12 +12,14 @@ import path from 'path';
  * macOS: Apple Silicon only (owner decision 2026-07-10) — Intel Macs keep
  * the docked native engine. Linux: any arch — the helper renders offscreen
  * through headless EGL and links libmpv out of process, so neither window
- * embedding nor the in-process-libmpv ban constrains it. Windows: not
- * ported yet.
+ * embedding nor the in-process-libmpv ban constrains it. Windows: any arch
+ * with a helper binary (WGL offscreen render; in practice x64, the only
+ * vendored runtime) — the helper-presence check below is the real gate.
  */
 export function isFrameCopyPlatformSupported(): boolean {
     return (
         process.platform === 'linux' ||
+        process.platform === 'win32' ||
         (process.platform === 'darwin' && process.arch === 'arm64')
     );
 }
@@ -73,12 +75,18 @@ export function getEmbeddedMpvAddonCandidatePaths(): string[] {
  * null. Requires the execute bit, not just existence: webpack's dist asset
  * copy drops file modes, and spawning a 0644 helper fails with EACCES — a
  * non-executable candidate must read as "unavailable" so the engine falls
- * back to native instead of erroring.
+ * back to native instead of erroring. On Windows there is no execute bit
+ * and accessSync(X_OK) degrades to an existence check, which is the right
+ * gate there.
  */
 export function resolveFrameCopyHelperPath(): string | null {
+    const helperFileName =
+        process.platform === 'win32'
+            ? 'iptvnator_mpv_helper.exe'
+            : 'iptvnator_mpv_helper';
     const candidates = getEmbeddedMpvAddonCandidatePaths().map(
         (candidatePath) =>
-            path.join(path.dirname(candidatePath), 'iptvnator_mpv_helper')
+            path.join(path.dirname(candidatePath), helperFileName)
     );
     return (
         candidates.find((candidate) => {
