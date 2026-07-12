@@ -370,3 +370,4 @@ The name **"IPTVnator"** and the IPTVnator logo are unregistered trademarks of t
 [![All Contributors](https://img.shields.io/badge/all_contributors-13-orange.svg?style=flat-square)](#contributors)
 
 <!-- ALL-CONTRIBUTORS-BADGE:END -->
+NEW RELEASE FOR ANDROID 
